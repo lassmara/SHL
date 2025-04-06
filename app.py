@@ -28,7 +28,7 @@ df = load_data()
 # -------------------- LOAD EMBEDDINGS --------------------
 # @st.cache_resource
 def load_model():
-    return SentenceTransformer("all-MiniLM-L6-v2")
+    return SentenceTransformer("paraphrase-MiniLM-L6-v2")
 
 model = load_model()
 df["embedding"] = df["description"].apply(lambda x: model.encode(x, show_progress_bar=False))
