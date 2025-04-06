@@ -11,3 +11,6 @@ google-generativeai
 sentence-transformers
 transformers
 torch
+bash setup.sh
+
+
