@@ -26,7 +26,7 @@ def load_data():
 df = load_data()
 
 # -------------------- LOAD EMBEDDINGS --------------------
-@st.cache_resource
+# @st.cache_resource
 def load_model():
     return SentenceTransformer("all-MiniLM-L6-v2")
 
