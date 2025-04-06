@@ -27,6 +27,11 @@ df = load_data()
 
 # -------------------- LOAD EMBEDDINGS --------------------
 # @st.cache_resource
+from huggingface_hub import login
+
+login(token=st.secrets["HF_TOKEN"])  # Authenticate using secret in Streamlit Cloud
+# model = SentenceTransformer("paraphrase-MiniLM-L6-v2")
+
 def load_model():
     return SentenceTransformer("paraphrase-MiniLM-L6-v2")
 
