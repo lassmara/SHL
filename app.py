@@ -7,8 +7,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 import google.generativeai as genai
 
 # -------------------- CONFIG --------------------
-st.set_page_config(page_title="🔍 SHL Job Assessment Recommender", layout="wide")
-st.title("🤖 SHL Assessment Recommender")
+st.set_page_config(page_title="🔍 SHL Job Recommender", layout="wide")
+st.title("SHL Assessment Recommender")
 st.markdown("Enter a job description to discover matching SHL assessments.")
 
 # -------------------- GEMINI SETUP --------------------
@@ -89,17 +89,17 @@ def extract_test_types_and_metadata(text):
     return test_types, metadata
 
 # -------------------- UI --------------------
-query = st.text_area("💬 Job description or query:", height=150, placeholder="e.g., Hiring for a frontend engineer with JavaScript skills...")
+query = st.text_area("Job description or query:", height=150, placeholder="e.g., Hiring for a frontend engineer with JavaScript skills...")
 top_k = st.slider("🔢 Number of recommendations to show:", min_value=1, max_value=20, value=10)
 max_duration = st.number_input("⏱️ Max duration (in minutes):", min_value=5, max_value=120, value=60)
 
-if st.button("🔍 Search") and query.strip():
-    with st.spinner("Analyzing with Gemini..."):
+if st.button("Search") and query.strip():
+    with st.spinner("Analyzing ..."):
         gemini_response = enhance_query_with_gemini(query)
         test_types, metadata = extract_test_types_and_metadata(gemini_response)
 
-    st.markdown("### 🧠 Gemini Response")
-    st.code(gemini_response)
+    # st.markdown("### 🧠 Gemini Response")
+    # st.code(gemini_response)
 
     st.markdown("#### 📌 Detected SHL Test Types")
     st.write(", ".join(test_types) if test_types else "None")
