@@ -1,0 +1,10 @@
+streamlit
+pandas
+langchain
+faiss-cpu
+google-generativeai
+streamlit
+pandas
+scikit-learn
+sentence-transformers
+google-generativeai
