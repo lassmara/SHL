@@ -29,7 +29,7 @@ df = load_data()
 
 
 def load_model():
-    return SentenceTransformer("paraphrase-MiniLM-L6-v2")
+    return SentenceTransformer("Gemini2.5-pro")
 
 model = load_model()
 df["embedding"] = df["description"].apply(lambda x: model.encode(x, show_progress_bar=False))
