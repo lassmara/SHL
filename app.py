@@ -5,14 +5,10 @@ import ast
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 import google.generativeai as genai
-from fastapi import FastAPI, Query
-from pydantic import BaseModel
-import uvicorn
-import json
 
 # -------------------- CONFIG --------------------
-st.set_page_config(page_title="🔍 SHL Job Recommender", layout="wide")
-st.title("SHL Assessment Recommender")
+st.set_page_config(page_title="🔍 SHL Job Assessment Recommender", layout="wide")
+st.title("🤖 SHL Assessment Recommender")
 st.markdown("Enter a job description to discover matching SHL assessments.")
 
 # -------------------- GEMINI SETUP --------------------
@@ -92,38 +88,37 @@ def extract_test_types_and_metadata(text):
 
     return test_types, metadata
 
-# -------------------- API ENDPOINT --------------------
+# -------------------- UI --------------------
+query = st.text_area("Job description or query:", height=150, placeholder="e.g., Hiring for a frontend engineer with JavaScript skills...")
+top_k = st.slider("🔢 Number of recommendations to show:", min_value=1, max_value=20, value=10)
+max_duration = st.number_input("⏱️ Max duration (in minutes):", min_value=5, max_value=120, value=60)
 
-# FastAPI Setup
-app = FastAPI()
+if st.button("Search") and query.strip():
+    with st.spinner("Analyzing ..."):
+        gemini_response = enhance_query_with_gemini(query)
+        test_types, metadata = extract_test_types_and_metadata(gemini_response)
 
-class QueryModel(BaseModel):
-    query: str
-    top_k: int = 10
-    max_duration: int = 60
+    # st.markdown("### 🧠 Gemini Response")
+    # st.code(gemini_response)
 
-@app.post("/recommendations/")
-def get_recommendations(data: QueryModel):
-    query = data.query
-    top_k = data.top_k
-    max_duration = data.max_duration
+    st.markdown("#### 📌 Detected SHL Test Types")
+    st.write(", ".join(test_types) if test_types else "None")
 
-    # Enhance query using Gemini
-    gemini_response = enhance_query_with_gemini(query)
-    test_types, metadata = extract_test_types_and_metadata(gemini_response)
+    st.markdown("#### 🗂️ Inferred Metadata")
+    st.json(metadata)
 
-    # Filter Data based on duration
+    # -------------------- FILTER BY DURATION --------------------
     filtered_df = df[df["duration_minutes"] <= max_duration].copy()
     query_vec = model.encode([gemini_response])
 
     def calculate_score(row):
         score = cosine_similarity([row["embedding"]], query_vec)[0][0]
-        
+
         # Boost for test type match
         if any(code in str(row["test_types"]) for code in test_types):
             score += 0.5
 
-        # Metadata matches
+        # Metadata matches (only if you later add these columns in your CSV)
         if "role" in row and metadata.get("Job Level") and metadata["Job Level"].lower() in str(row["role"]).lower():
             score += 0.3
         if "role" in row and metadata.get("Job Family") and metadata["Job Family"].lower() in str(row["role"]).lower():
@@ -132,17 +127,22 @@ def get_recommendations(data: QueryModel):
         return score
 
     filtered_df["total_score"] = filtered_df.apply(calculate_score, axis=1)
+
     results = filtered_df.sort_values(by="total_score", ascending=False).head(top_k).copy()
+    results["role"] = results.apply(lambda row: f"[{row['role']}]({row['link']})", axis=1)
+    results["duration"] = results["duration_minutes"].apply(lambda x: f"{x:.1f} min" if pd.notna(x) else "")
 
-    # Prepare output
-    result_list = results[["role", "duration_minutes", "test_types", "remote_testing", "adaptive_irt", "description"]].to_dict(orient='records')
+    display_cols = ["role", "duration", "test_types", "remote_testing", "adaptive_irt", "description"]
+    col_labels = {
+        "role": "🧑‍💼 Role",
+        "duration": "⏱ Duration",
+        "test_types": "🧪 Types",
+        "remote_testing": "🌐 Remote?",
+        "adaptive_irt": "📈 Adaptive?",
+        "description": "📝 Description"
+    }
 
-    return result_list
-
-
-# -------------------- RUN THE APP --------------------
-if __name__ == "__main__":
-    # To run the FastAPI server:
-    # uvicorn filename:app --reload
-    uvicorn.run(app, host="0.0.0.0", port=8000)
-
+    st.markdown("### ✅ Top Recommended Assessments")
+    st.dataframe(results[display_cols].rename(columns=col_labels), use_container_width=True)
+    result_json = results[display_cols].rename(columns=col_labels).to_dict(orient='records')
+    st.json(result_json)
