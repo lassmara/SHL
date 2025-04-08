@@ -25,14 +25,6 @@ def load_data():
 
 df = load_data()
 
-# -------------------- LOAD EMBEDDINGS --------------------
-@st.cache_resource
-def load_model():
-    return SentenceTransformer("all-MiniLM-L6-v2")
-
-model = load_model()
-df["embedding"] = df["description"].apply(lambda x: model.encode(x, show_progress_bar=False))
-
 # -------------------- GEMINI FUNCTIONS --------------------
 def enhance_query_with_gemini(raw_query):
     try:
@@ -69,7 +61,6 @@ def extract_test_types_and_metadata(text):
     metadata = {}
 
     try:
-        # Extract set: {A, K, P}
         match = re.search(r'\{([^}]+)\}', text)
         if match:
             raw_codes = [c.strip() for c in match.group(1).split(",")]
@@ -79,7 +70,6 @@ def extract_test_types_and_metadata(text):
         st.warning(f"Error parsing test types: {e}")
 
     try:
-        # Extract dict
         dict_match = re.search(r'\{[^{}]*"Job Family"[^{}]+\}', text)
         if dict_match:
             metadata = ast.literal_eval(dict_match.group())
@@ -93,13 +83,17 @@ query = st.text_area("Job description or query:", height=150, placeholder="e.g.,
 top_k = st.slider("🔢 Number of recommendations to show:", min_value=1, max_value=20, value=10)
 max_duration = st.number_input("⏱️ Max duration (in minutes):", min_value=5, max_value=120, value=60)
 
+@st.cache_resource
+def load_model():
+    return SentenceTransformer("all-MiniLM-L6-v2")
+
 if st.button("Search") and query.strip():
     with st.spinner("Analyzing ..."):
         gemini_response = enhance_query_with_gemini(query)
         test_types, metadata = extract_test_types_and_metadata(gemini_response)
 
-    # st.markdown("### 🧠 Gemini Response")
-    # st.code(gemini_response)
+        model = load_model()
+        query_vec = model.encode([gemini_response])
 
     st.markdown("#### 📌 Detected SHL Test Types")
     st.write(", ".join(test_types) if test_types else "None")
@@ -107,18 +101,14 @@ if st.button("Search") and query.strip():
     st.markdown("#### 🗂️ Inferred Metadata")
     st.json(metadata)
 
-    # -------------------- FILTER BY DURATION --------------------
     filtered_df = df[df["duration_minutes"] <= max_duration].copy()
-    query_vec = model.encode([gemini_response])
 
     def calculate_score(row):
         score = cosine_similarity([row["embedding"]], query_vec)[0][0]
 
-        # Boost for test type match
         if any(code in str(row["test_types"]) for code in test_types):
             score += 0.5
 
-        # Metadata matches (only if you later add these columns in your CSV)
         if "role" in row and metadata.get("Job Level") and metadata["Job Level"].lower() in str(row["role"]).lower():
             score += 0.3
         if "role" in row and metadata.get("Job Family") and metadata["Job Family"].lower() in str(row["role"]).lower():
