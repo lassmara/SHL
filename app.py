@@ -23,7 +23,21 @@ def load_data():
     df["description"] = df["description"].fillna("").str.replace(r'\s+', ' ', regex=True)
     return df
 
-df = load_data()
+# Lazy load data only when the user presses the button
+load_data_button = st.button('Load Data')
+if load_data_button:
+    df = load_data()
+    st.success("Data Loaded Successfully!")
+
+# -------------------- LOAD EMBEDDINGS --------------------
+@st.cache_resource
+def load_model():
+    return SentenceTransformer("all-MiniLM-L6-v2")
+
+# Lazy load model only when needed
+model = None
+if load_data_button:
+    model = load_model()
 
 # -------------------- GEMINI FUNCTIONS --------------------
 def enhance_query_with_gemini(raw_query):
@@ -83,17 +97,10 @@ query = st.text_area("Job description or query:", height=150, placeholder="e.g.,
 top_k = st.slider("🔢 Number of recommendations to show:", min_value=1, max_value=20, value=10)
 max_duration = st.number_input("⏱️ Max duration (in minutes):", min_value=5, max_value=120, value=60)
 
-@st.cache_resource
-def load_model():
-    return SentenceTransformer("all-MiniLM-L6-v2")
-
-if st.button("Search") and query.strip():
+if st.button("Search") and query.strip() and load_data_button:
     with st.spinner("Analyzing ..."):
         gemini_response = enhance_query_with_gemini(query)
         test_types, metadata = extract_test_types_and_metadata(gemini_response)
-
-        model = load_model()
-        query_vec = model.encode([gemini_response])
 
     st.markdown("#### 📌 Detected SHL Test Types")
     st.write(", ".join(test_types) if test_types else "None")
@@ -102,6 +109,7 @@ if st.button("Search") and query.strip():
     st.json(metadata)
 
     filtered_df = df[df["duration_minutes"] <= max_duration].copy()
+    query_vec = model.encode([gemini_response])
 
     def calculate_score(row):
         score = cosine_similarity([row["embedding"]], query_vec)[0][0]
