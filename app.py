@@ -17,21 +17,20 @@ genai.configure(api_key=GEMINI_API_KEY)
 
 # -------------------- LOAD DATA --------------------
 @st.cache_data
-def load_data():
+def load_raw_data():
     df = pd.read_csv("shl_detailed_enriched.csv")
     df["duration_minutes"] = df["duration"].str.extract(r'(\d+)', expand=False).astype(float)
     df["description"] = df["description"].fillna("").str.replace(r'\s+', ' ', regex=True)
     return df
 
-df = load_data()
-
-# -------------------- LOAD EMBEDDINGS --------------------
 @st.cache_resource
 def load_model():
     return SentenceTransformer("all-MiniLM-L6-v2")
 
-model = load_model()
-df["embedding"] = df["description"].apply(lambda x: model.encode(x, show_progress_bar=False))
+
+
+
+
 
 # -------------------- GEMINI FUNCTIONS --------------------
 def enhance_query_with_gemini(raw_query):
@@ -89,9 +88,19 @@ def extract_test_types_and_metadata(text):
     return test_types, metadata
 
 # -------------------- UI --------------------
+
 query = st.text_area("Job description or query:", height=150, placeholder="e.g., Hiring for a frontend engineer with JavaScript skills...")
 top_k = st.slider("🔢 Number of recommendations to show:", min_value=1, max_value=20, value=10)
 max_duration = st.number_input("⏱️ Max duration (in minutes):", min_value=5, max_value=120, value=60)
+
+
+with st.spinner("Loading data and generating embeddings..."):
+    df = load_raw_data()
+    model = load_model()
+    df["embedding"] = df["description"].apply(lambda x: model.encode(x, show_progress_bar=False))
+    
+st.success("✅ Data loaded and embeddings generated.")
+
 
 if st.button("Search") and query.strip():
     with st.spinner("Analyzing ..."):
