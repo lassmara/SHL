@@ -140,3 +140,7 @@ async def get_home_page():
     filepath = os.path.join(os.getcwd(),"static", "index.html")
     with open(filepath, "r") as f:
         return f.read()
+import uvicorn
+if __name__ == "__main__":
+    
+    uvicorn.run(app, host="0.0.0.0", port=8080)  # Render often uses port 8080
