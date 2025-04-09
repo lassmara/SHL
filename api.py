@@ -6,15 +6,17 @@ import google.generativeai as genai
 import pandas as pd
 import re
 import ast
-import streamlit as st
+# import streamlit as st
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 import os
+load_dotenv()
 # Set up the Gemini API key
 # GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
 api_key = os.getenv("GEMINI_API_KEY")
-# genai.configure(api_key=GEMINI_API_KEY)
+genai.configure(api_key=api_key)
+print(api_key)
 
 # Load the model for Sentence Transformers
 model = SentenceTransformer("all-MiniLM-L6-v2")
@@ -135,6 +137,6 @@ def health_check():
 
 @app.get("/", response_class=HTMLResponse)
 async def get_home_page():
-    filepath = os.path.join(os.getcwd,"static", "index.html")
+    filepath = os.path.join(os.getcwd(),"static", "index.html")
     with open(filepath, "r") as f:
         return f.read()
