@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SHL Assessment Recommender</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+      body {
+        font-family: "Arial", sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f7fa;
+        color: #333;
+      }
+
+      .container {
+        width: 80%;
+        margin: 50px auto;
+        background-color: #ffffff;
+        padding: 30px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+        max-width: 900px;
+      }
+
+      h1 {
+        text-align: center;
+        font-size: 2rem;
+        color: #5c6bc0;
+        margin-bottom: 20px;
+      }
+
+      textarea {
+        width: 100%;
+        padding: 10px;
+        font-size: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        resize: vertical;
+        margin-bottom: 20px;
+      }
+
+      button {
+        background-color: #5c6bc0;
+        color: white;
+        padding: 10px 20px;
+        font-size: 1rem;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+
+      button:hover {
+        background-color: #3f51b5;
+      }
+
+      .spinner {
+        display: none;
+        text-align: center;
+        font-size: 1.5rem;
+        color: #5c6bc0;
+        margin-top: 20px;
+      }
+
+      .results {
+        margin-top: 30px;
+      }
+
+      .result-item {
+        background-color: #f9f9f9;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+
+      .result-item h4 {
+        color: #3f51b5;
+        margin-bottom: 10px;
+        font-size: 1.25rem;
+      }
+
+      .result-item p {
+        margin: 5px 0;
+        font-size: 1rem;
+      }
+
+      .result-item strong {
+        color: #333;
+      }
+
+      .result-item ul {
+        list-style-type: none;
+        padding: 0;
+      }
+
+      .result-item ul li {
+        padding: 5px 0;
+      }
+      .result-item h4 {
+        color: #3f51b5; /* A blue color for the hyperlink */
+        margin-bottom: 10px;
+        font-size: 1.25rem;
+        font-weight: bold;
+        cursor: pointer; /* Indicates that it's clickable */
+        transition: color 0.3s, text-decoration 0.3s; /* Smooth transition effect */
+      }
+
+      .result-item h4:hover {
+        color: #1a237e; /* Darker blue on hover */
+        text-decoration: underline; /* Adds an underline on hover */
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <h1>SHL Assessment Recommender</h1>
+      <textarea
+        id="query"
+        placeholder="Enter job description here..."
+        rows="5"
+      ></textarea>
+      <br />
+      <button onclick="search()">Search</button>
+
+      <div id="spinner" class="spinner">Analyzing... Please wait.</div>
+
+      <div id="results" class="results"></div>
+    </div>
+
+    <script>
+      async function search() {
+        const query = document.getElementById("query").value;
+        if (!query.trim()) {
+          alert("Please enter a job description.");
+          return;
+        }
+
+        document.getElementById("spinner").style.display = "block";
+        document.getElementById("results").innerHTML = ""; // Clear previous results
+
+        try {
+          const response = await axios.post("/recommend", { query });
+          document.getElementById("spinner").style.display = "none";
+
+          const { recommended_assessments } = response.data;
+          let resultsHtml = `
+                    <h3>Top Recommended Assessments</h3>
+                `;
+          recommended_assessments.forEach((item) => {
+            resultsHtml += `
+                        <div class="result-item">
+                            <h4 onclick="window.open('${item.url}', '_blank')">${item.url}</h4>
+                            <ul>
+                                <li><strong>Duration:</strong> ${item.duration}</li>
+                                <li><strong>Test Types:</strong> ${item.test_type}</li>
+                                <li><strong>Remote Testing:</strong> ${item.remote_support}</li>
+                                <li><strong>Adaptive:</strong> ${item.adaptive_support}</li>
+                                <li><strong>Description:</strong> ${item.description}</li>
+                            </ul>
+                        </div>
+                    `;
+          });
+
+          document.getElementById("results").innerHTML = resultsHtml;
+        } catch (error) {
+          console.log(error);
+          document.getElementById("spinner").style.display = "none";
+          alert("An error occurred. Please try again.");
+        }
+      }
+    </script>
+  </body>
+</html>
